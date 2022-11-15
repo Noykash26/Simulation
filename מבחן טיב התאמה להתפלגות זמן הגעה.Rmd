@@ -1,0 +1,247 @@
+---
+title: "Group20"
+author: "314963810_313177073_316088525"
+date: "28 4 2021"
+output:
+word_document: default
+ 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+ 
+
+```
+###### Simulation Project
+
+### Libraries
+
+
+we will need the following libraries: fitdistrplus, magrittr
+```{r libraries, include=FALSE,echo=FALSE}
+library(fitdistrplus)
+library(magrittr)
+```
+## 1.  Empirical Data
+
+Empirical data - observations from the excel file added to excercise.
+We manipulated the data: the time between the intsances (in minutes) was calculated, and we took 1/that time to get the rate samples.
+
+```{r excel1 samples}
+
+samples <- read.csv(file.choose(), header = T)
+print(samples)
+large_rate <- samples[1:50,5]
+mugbalut_rate <- samples[1:50,6]
+print(large_rate)
+print(mugbalut_rate)
+```
+#### Large Kalpi
+
+## 2. First Impressions 
+
+We will look at the data and understand - 
+
+1) The data range - **(0, 30)**
+
+2) Is it discrete or continous? **CONTINOUS, A-SYMMETRIC DISTRIBUTION WITH RIGHT TAIL. It looks like an exponental distribution** 
+
+3) are there any outliers? **YES, 3**
+
+
+We used the following plots to answer the questions above:
+
+```{r empirical plots1, include=TRUE}
+par(mfrow=c(1,3)) # defines 2 plots on the same window
+plot(large_rate,ylab="Sample values") # plot ( left graph )
+hist(large_rate, ylab="Frequency ") # histogram (right graph)
+bp1 <- boxplot(large_rate)
+```
+## 3. Exceptional analysis
+
+We will delete exeptional data with the help of the code below:
+
+```{r exeptional1,include=TRUE}
+min_exception1 <- min(bp1$out)
+final_large_rate <- subset(large_rate, large_rate < min_exception1)
+```
+
+Now we can look further, and plot the histogram not in original values but as density (empirical f(x)) and cummulative probability (F(x)), using plotdist from the fitdistrplus library. 
+
+## 4. Fit a known distribution 
+
+We can use R to estimate the paramters of known distribution to our data.
+
+Notice that it **CAN'T** be the following distibutions:
+
+- beta - because the values are not in [0,1]
+
+- pois/nbinom/geom - because the continous distribution.
+
+The estimate are R estimates of the parameters of a tested distribution - **If it was the exact distribution**.
+
+We will try fitting the model to: exp, norm and gamma distributions.
+
+```{r fitting1, include=TRUE}
+expFit<-fitdist(final_large_rate,"exp") # fitting a exp distrbution 
+summary(expFit) # summary function displays the results
+
+normFit<-fitdist(final_large_rate,"norm")
+summary(normFit)
+
+gammaFit<-fitdist(final_large_rate,"gamma")
+summary(gammaFit)
+
+```
+We can see the difference in the likelihood and in the BIC/AIC. We want higher likelihood, and lower AIC/BIC. 
+**We can conclude that the gamma distribution with shape=1.9688020 and  rate=0.6994063 fits our data better.** 
+
+This will be seen from the plots as well:
+
+```{r individual graphs1, include=TRUE}
+plotdist(final_large_rate,"gamma",para=list(shape=gammaFit$estimate[1], rate=gammaFit$estimate[2]))
+plotdist(final_large_rate,"exp",para=list(rate=expFit$estimate[1]))
+plotdist(final_large_rate,"norm",para=list(normFit$estimate[1],normFit$estimate[2])) 
+
+```
+We can see that this is absolutely NOT a norm distribution.
+There is similarity between exponental and gamma distributions, **BUT gamma distribution fits much better**.
+
+The two graphs can be combined into one graph in the following manner:
+```{r combined graphs1, include=TRUE}
+par(mfrow=c(2,2)) # manually define a 2X2 graph window 
+legendText<-c("gamma","exp") # define legend text
+denscomp(list(gammaFit,expFit),legendtext=legendText) # histograms
+qqcomp(list(gammaFit,expFit),legendtext=legendText)  # qq plot
+cdfcomp(list(gammaFit,expFit),legendtext=legendText) # cdf plot
+ppcomp(list(gammaFit,expFit),legendtext=legendText) # pp plot
+```
+
+## 5. Perform Goodness of Fit tests on fitted distribution
+
+Now that we found a fitting distribution, we need to statisticlly test the hypothesis our data came from this distribution. for that we can use Goodness of Fit tests (GOF). We can choose between Chi-Squared (CHISQ) or Kolmogorov-Smirnov (KS).
+
+**H0: arrival~gamma(1.9688020, 0.6994063)**
+
+**H1: NOT**
+
+We will use the general function gofstat with KS because it's more accurate:
+
+
+```{r, goodness1 KS}
+gammagof<- gofstat(gammaFit)%>%print()
+gammagof$kstest%>%print()
+```
+
+The gamma distribution test - **H0 is not denied**, and hence we can conclude the **data came from gamma distribution**.
+
+p-value for the test is: 
+```{r p-value1, results='asis'}
+paste(gammagof$chisqpvalue)
+```
+
+## Mugbalut Kalpi
+
+## 2. First Impressions 
+
+We will look at the data and understand - 
+
+1) The data range - **(0, 6)**
+
+2) Is it discrete or continous? **CONTINOUS, A-SYMMETRIC DISTRIBUTION WITH RIGHT TAIL. It looks like an exponental distribution** 
+
+3) are there any outliers? **YES, 6**
+
+
+We used the following plots to answer the questions above:
+
+```{r empirical plots2, include=TRUE}
+par(mfrow=c(1,3)) # defines 2 plots on the same window
+plot(mugbalut_rate,ylab="Sample values") # plot ( left graph )
+hist(mugbalut_rate, ylab="Frequency ") # histogram (right graph)
+bp2 <- boxplot(mugbalut_rate)
+```
+## 3. Exceptional analysis
+
+We will delete exeptional data with the help of the code below:
+
+```{r exeptional2,include=TRUE}
+min_exception2 <- min(bp2$out)
+final_mugbalut_rate <- subset(mugbalut_rate, mugbalut_rate < min_exception2)
+```
+
+Now we can look further, and plot the histogram not in original values but as density (empirical f(x)) and cummulative probability (F(x)), using plotdist from the fitdistrplus library. 
+
+## 4. Fit a known distribution 
+
+We can use R to estimate the paramters of known distribution to our data.
+
+Notice that it **CAN'T** be the following distibutions:
+
+- beta - because the values are not in [0,1]
+
+- pois/nbinom/geom - because the continous distribution.
+
+The estimate are R estimates of the parameters of a tested distribution - **If it was the exact distribution**.
+
+We will try fitting the model to: exp, unif and gamma distributions.
+
+```{r fitting2, include=TRUE}
+expFit2<-fitdist(final_mugbalut_rate,"exp") # fitting a exp distrbution 
+summary(expFit2) # summary function displays the results
+
+normFit2<-fitdist(final_mugbalut_rate,"norm")
+summary(normFit2)
+
+gammaFit2<-fitdist(final_mugbalut_rate,"gamma")
+summary(gammaFit2)
+
+```
+We can see the difference in the likelihood and in the BIC/AIC. We want higher likelihood, and lower AIC/BIC. 
+**We can conclude that the gamma distribution with shape=2.023509 and  rate=2.835970 fits our data better.** 
+
+This will be seen from the plots as well:
+
+```{r individual graphs2, include=TRUE}
+plotdist(final_mugbalut_rate,"gamma",para=list(shape=gammaFit2$estimate[1], rate=gammaFit2$estimate[2]))
+plotdist(final_mugbalut_rate,"exp",para=list(rate=expFit2$estimate[1]))
+plotdist(final_mugbalut_rate,"norm",para=list(normFit2$estimate[1],normFit2$estimate[2])) 
+
+```
+We can see that this is absolutely NOT a unif distribution.
+There is similarity between exponental and gamma distributions, **BUT gamma distribution fits much better**.
+
+The two graphs can be combined into one graph in the following manner:
+```{r combined graphs2, include=TRUE}
+par(mfrow=c(2,2)) # manually define a 2X2 graph window 
+legendText2<-c("gamma","exp") # define legend text
+denscomp(list(gammaFit2,expFit2),legendtext=legendText2) # histograms
+qqcomp(list(gammaFit2,expFit2),legendtext=legendText2)  # qq plot
+cdfcomp(list(gammaFit2,expFit2),legendtext=legendText2) # cdf plot
+ppcomp(list(gammaFit2,expFit2),legendtext=legendText2) # pp plot
+```
+
+## 5. Perform Goodness of Fit tests on fitted distribution
+
+Now that we found a fitting distribution, we need to statisticlly test the hypothesis our data came from this distribution. for that we can use Goodness of Fit tests (GOF). We can choose between Chi-Squared (CHISQ) or Kolmogorov-Smirnov (KS).
+
+**H0: arrival~gamma(2.023509, 2.835970)**
+
+**H1: NOT**
+
+We will use the general function gofstat with KS because it's more accurate:
+
+
+```{r, goodness2 KS}
+gammagof2<- gofstat(gammaFit2)%>%print()
+gammagof2$kstest%>%print()
+```
+
+The gamma distribution test - **H0 is not denied**, and hence we can conclude the **data came from gamma distribution**.
+
+p-value for the test is: 
+```{r p-value2, results='asis'}
+paste(gammagof2$chisqpvalue)
+```
+
+
